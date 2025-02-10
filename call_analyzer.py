@@ -156,6 +156,8 @@ class CallAnalyzer:
 
         return sentiment, emotion
 
+    
+
     def detect_urgency(self, text):
         """
         Detect urgency levels based on keywords.
@@ -166,12 +168,16 @@ class CallAnalyzer:
             "low": {"later", "whenever", "at your convenience"},
         }
 
-        scores = {
-            level: sum(1 for word in words if word in text.lower())
-            for level, words in urgency_levels.items()
-        }
+        words = set(re.findall(r'\b\w+\b', text.lower()))  # Extract words more reliably
+        scores = {level: sum(1 for word in words if word in keywords) for level, keywords in urgency_levels.items()}
 
-        return max(scores, key=scores.get, default="Low")
+        max_score = max(scores.values())
+        if max_score == 0:
+            return "low"  # Explicit default if no urgency words are found
+
+        # Return the highest urgency level (if multiple levels have the same score, return the more urgent one)
+        return max((level for level, score in scores.items() if score == max_score), key=lambda x: ["low", "medium", "high"].index(x))
+
 
     def extract_audio_features(self, audio_path):
         """

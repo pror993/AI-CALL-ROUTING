@@ -40,8 +40,8 @@ def initialize_client_database():
 
     # Insert mockup client data
     clients = [
-        ("John Doe", "johndoe@example.com", True),   # First-time caller
-        ("Jane Smith", "janesmith@example.com", False),  # Returning caller
+        ("Deepa Mishra", "7894533258", True),   # First-time caller
+        ("Harsh Kumar", "9934562279", False),  # Returning caller
     ]
 
     cursor.executemany('''
