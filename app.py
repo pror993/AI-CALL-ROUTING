@@ -1,91 +1,145 @@
 import streamlit as st
-import sounddevice as sd
-import numpy as np
-import whisper
-import threading
-import queue
-import tempfile
-from scipy.io.wavfile import write
+from pydub import AudioSegment
+import os
+import speech_recognition as sr
+from call_analyzer import CallAnalyzer  # Import the CallAnalyzer class
+from database.agent_database import get_all_agents  # For displaying agent data
+from database.client_database import add_client, get_calls_by_client  # For client data
+from utils.agent_matching import assign_agent_and_schedule  # For agent matching
+import pandas as pd  # For structured data display
 
-class AudioTranscriber:
-    def __init__(self):
-        self.model = whisper.load_model("base")  # Use "tiny", "base", "small", "medium", or "large"
-        self.audio_queue = queue.Queue()
-        self.is_recording = False
-        self.sample_rate = 16000
+# Helper function: Save uploaded audio file
+def save_audio_file(uploaded_file, output_path="temp_audio.mp3"):
+    with open(output_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return output_path
 
-    def record_audio(self):
-        def callback(indata, frames, time, status):
-            if self.is_recording:
-                self.audio_queue.put(indata.copy())
+# Helper function: Transcribe audio to text
+def transcribe_audio(audio_path):
+    try:
+        # Convert MP3 to WAV for transcription
+        audio = AudioSegment.from_file(audio_path)
+        wav_path = "temp_audio.wav"
+        audio.export(wav_path, format="wav")
 
-        with sd.InputStream(callback=callback, 
-                          channels=1,
-                          samplerate=self.sample_rate,
-                          dtype=np.float32):
-            while self.is_recording:
-                sd.sleep(100)
+        # Initialize recognizer
+        recognizer = sr.Recognizer()
 
-    def transcribe_audio(self, audio_data):
-        # Save audio data to a temporary file
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as temp_audio:
-            write(temp_audio.name, self.sample_rate, audio_data)
-            
-            # Transcribe using Whisper
-            result = self.model.transcribe(temp_audio.name)
-            return result["text"]
+        # Load WAV file
+        with sr.AudioFile(wav_path) as source:
+            audio_data = recognizer.record(source)  # Read the entire audio file
+            transcription = recognizer.recognize_google(audio_data)  # Perform transcription
 
-def main():
-    st.title("Real-time Speech Transcription")
-    
-    transcriber = AudioTranscriber()
-    
-    # Initialize session state variables
-    if 'text_output' not in st.session_state:
-        st.session_state.text_output = ""
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Push-to-Talk button
-        if st.button("Push to Talk", key="talk_button", 
-                    help="Hold to record audio"):
-            transcriber.is_recording = True
-            audio_data = []
-            
-            # Start recording in a separate thread
-            recording_thread = threading.Thread(
-                target=transcriber.record_audio)
-            recording_thread.start()
-            
-            st.write("Recording... Release button to stop.")
-            
-            # Wait for button release
-            while transcriber.is_recording:
-                try:
-                    audio_chunk = transcriber.audio_queue.get(timeout=0.1)
-                    audio_data.append(audio_chunk)
-                except queue.Empty:
-                    continue
-            
-            if audio_data:
-                # Combine all audio chunks
-                combined_audio = np.concatenate(audio_data)
-                
-                # Transcribe the audio
-                transcription = transcriber.transcribe_audio(combined_audio)
-                
-                # Update the output text
-                st.session_state.text_output += " " + transcription
-    
-    with col2:
-        if st.button("Clear Transcript"):
-            st.session_state.text_output = ""
-    
-    # Display transcribed text
-    st.text_area("Transcription", 
-                 value=st.session_state.text_output,
-                 height=200)
+        return transcription
+    except sr.UnknownValueError:
+        st.error("Google Speech Recognition could not understand the audio.")
+        return None
+    except sr.RequestError as e:
+        st.error(f"Could not request results from Google Speech Recognition: {e}")
+        return None
+    except Exception as e:
+        st.error(f"An error occurred during transcription: {e}")
+        return None
 
-if __name__ == "__main__":
-    main()
+# Streamlit UI: Title
+st.title("AI-Powered Call Routing and Analysis")
+
+# Step 1: File Upload
+uploaded_file = st.file_uploader("Upload a conversation audio file (.mp3)", type=["mp3"])
+
+if uploaded_file:
+    st.audio(uploaded_file, format="audio/mp3")  # Play the uploaded file
+    st.success("File uploaded successfully!")
+
+    # Save audio locally
+    audio_file_path = save_audio_file(uploaded_file)
+    st.info("Transcribing the audio file...")
+
+    # Transcribe the audio file
+    transcription = transcribe_audio(audio_file_path)
+
+    if transcription:
+        # Display transcription
+        st.subheader("Transcription")
+        st.write(transcription)
+
+# Helper function: Perform analysis combining text and audio features
+def combined_analysis(transcription, audio_path, call_analyzer, user_region=None):
+    try:
+        # Perform combined analysis (text + audio features)
+        analysis_results = call_analyzer.analyze(transcription, audio_path, region=user_region)
+        
+        # Determine language proficiency
+        language_proficiency = call_analyzer.analyze_language_proficiency(transcription)
+
+        return analysis_results, language_proficiency
+    except Exception as e:
+        st.error(f"Error performing analysis: {e}")
+        return None, None
+
+# Initialize CallAnalyzer
+call_analyzer = CallAnalyzer()
+
+if uploaded_file and transcription:
+    # Step 2: Perform Combined Analysis (Text + Audio Features)
+    st.info("Analyzing transcription and audio features for sentiment, urgency, and metadata...")
+    user_region = st.text_input("Enter region (optional, e.g., North, East):")
+
+    analysis_results, language_proficiency = combined_analysis(
+        transcription, audio_file_path, call_analyzer, user_region
+    )
+
+    if analysis_results:
+        # Display conversation analysis results
+        st.subheader("Conversation Analysis")
+        st.write(f"**Sentiment:** {analysis_results['sentiment']}")
+        st.write(f"**Urgency:** {analysis_results['urgency']}")
+        st.write(f"**Intent:** {analysis_results['intent']}")
+        st.write(f"**Language Proficiency:** {language_proficiency}")
+        st.write("**Extracted Metadata:**")
+        st.json(analysis_results["metadata"])
+
+ # Agent Matching and Scheduling Workflow
+if st.checkbox("Perform Agent Matching and Schedule"):
+    st.info("Matching a suitable agent for the call...")
+
+    # Input fields for client details
+    client_name = st.text_input("Enter Client Name", "John Doe")
+    contact_info = st.text_input("Enter Contact Info (e.g., email, phone)", "johndoe@example.com")
+    first_time_caller = st.checkbox("Is this their first time calling?", value=True)
+
+    # Button to start the assignment process
+    if st.button("Assign Agent to Call"):
+        # Add the client to the database if not already present
+        client_id = add_client(client_name, contact_info, first_time_caller)
+
+        # Perform agent matching and scheduling
+        matched_agent = assign_agent_and_schedule(
+            client_id=client_id,
+            urgency=analysis_results["urgency"],
+            intent=analysis_results["intent"],
+            metadata=analysis_results["metadata"],
+            transcription=transcription,
+            sentiment=analysis_results["sentiment"],
+        )
+
+        # Display the results of the agent assignment
+        if matched_agent:
+            st.subheader("Matched Agent")
+            st.write(f"**Name:** {matched_agent['Name']}")
+            st.write(f"**Proficiency:** {matched_agent['Proficiency']}")
+            st.write(f"**Specialization:** {matched_agent['Specialization']}")
+            st.write(f"**Shift Time:** {matched_agent['ShiftStart']} - {matched_agent['ShiftEnd']}")
+            st.write(f"**Tiredness Level:** {matched_agent['TirednessLevel']}")
+            st.success("Agent successfully assigned to the call!")
+        else:
+            st.warning("No suitable agent found. Please check agent availability or database entries.")
+
+        # Step 5 (Optional): Show Client's Call History
+        if st.checkbox("Show Client's Call History"):
+            client_calls = get_calls_by_client(client_id)
+            if client_calls:
+                st.subheader(f"Call History for {client_name}")
+                st.write(client_calls)
+            else:
+                st.warning("No call history available for this client.")

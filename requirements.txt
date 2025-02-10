@@ -1,0 +1,10 @@
+streamlit
+pydub
+speechrecognition
+datetime
+spacy
+regex
+textblob
+numpy
+transformers
+librosa
