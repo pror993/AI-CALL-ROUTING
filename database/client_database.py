@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from typing import Dict, List
 
 DATABASE_PATH = "database/data/clients.db"  # Path to the SQLite database file
@@ -40,8 +41,9 @@ def initialize_client_database():
 
     # Insert mockup client data
     clients = [
-        ("Deepa Mishra", "7894533258", True),   # First-time caller
-        ("Harsh Kumar", "9934562279", False),  # Returning caller
+        ("Amit Sharma", "amit.sharma@example.com", True),
+        ("Priya Singh", "priya.singh@example.com", False),
+        ("Vikram Patel", "vikram.patel@example.com", True),
     ]
 
     cursor.executemany('''
@@ -49,50 +51,22 @@ def initialize_client_database():
         VALUES (?, ?, ?)
     ''', clients)
 
-    conn.commit()
-    conn.close()
+    # Insert mockup call data
+    calls = [
+        (1, "Metadata for call 1", "Transcription for call 1", "Positive", "High", "Inquiry", 1),
+        (2, "Metadata for call 2", "Transcription for call 2", "Negative", "Low", "Complaint", 2),
+        (3, "Metadata for call 3", "Transcription for call 3", "Neutral", "Medium", "Support", 3),
+    ]
 
-# Add a new client to the Clients table
-def add_client(name: str, contact_info: str, first_time_caller: bool) -> int:
-    """
-    Adds a new client to the Clients table if they do not already exist.
-    If the client exists, their ClientID is returned.
-
-    Args:
-        name (str): Name of the client.
-        contact_info (str): Contact information of the client (e.g., email, phone).
-        first_time_caller (bool): Whether this is the client's first call.
-
-    Returns:
-        int: The ClientID of the client (newly added or existing).
-    """
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
-
-    # Check if the client already exists in the Clients table
-    cursor.execute('''
-        SELECT ClientID FROM Clients WHERE Name = ? AND ContactInfo = ?
-    ''', (name, contact_info))
-    result = cursor.fetchone()
-
-    # If the client exists, return their ClientID
-    if result:
-        client_id = result[0]
-    else:
-        # Insert the client into the Clients table
-        cursor.execute('''
-            INSERT INTO Clients (Name, ContactInfo, FirstTimeCaller)
-            VALUES (?, ?, ?)
-        ''', (name, contact_info, first_time_caller))
-
-        # Get the ID of the newly inserted client
-        client_id = cursor.lastrowid
+    cursor.executemany('''
+        INSERT INTO Calls (ClientID, Metadata, Transcription, Sentiment, Urgency, Intent, AssignedAgentID)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', calls)
 
     conn.commit()
     conn.close()
-    return client_id
 
-# Fetch a client by their ID
+# Retrieve client details by their ID
 def get_client_by_id(client_id: int) -> Dict:
     """
     Fetch a client by their ID.
@@ -115,20 +89,20 @@ def get_client_by_id(client_id: int) -> Dict:
             "ClientID": client[0],
             "Name": client[1],
             "ContactInfo": client[2],
-            "FirstTimeCaller": bool(client[3]),
+            "FirstTimeCaller": client[3],
         }
     return None
 
 # Retrieve all calls for a specific client
 def get_calls_by_client(client_id: int) -> List[Dict]:
     """
-    Fetch all calls for a specific client.
+    Fetch all calls for a specific client by their ID.
 
     Args:
         client_id (int): Unique identifier for the client.
 
     Returns:
-        List[Dict]: A list of dictionaries representing calls made by the client.
+        List[Dict]: A list of dictionaries representing the client's call history.
     """
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
@@ -151,39 +125,82 @@ def get_calls_by_client(client_id: int) -> List[Dict]:
         for call in calls
     ]
 
-# Record a new call in the Calls table
-def record_call(
-    client_id: int,
-    metadata: Dict,
-    transcription: str,
-    sentiment: str,
-    urgency: str,
-    intent: str,
-    agent_id: int
-):
+# Add a new client to the database
+def add_client(name: str, contact_info: str, first_time_caller: bool) -> int:
     """
-    Records a new call in the Calls table for a specific client.
+    Add a new client to the database.
 
     Args:
-        client_id (int): The ID of the client making the call.
-        metadata (Dict): Metadata about the call (e.g., extracted key phrases).
-        transcription (str): Text transcription of the call.
-        sentiment (str): Sentiment analysis result (Positive, Negative, Neutral).
-        urgency (str): The urgency level of the call (High, Medium, Low).
-        intent (str): The detected intent of the call (e.g., Support, General Inquiry).
-        agent_id (int): The ID of the agent assigned to the call.
+        name (str): The name of the client.
+        contact_info (str): The contact information of the client.
+        first_time_caller (bool): Whether the client is a first-time caller.
+
+    Returns:
+        int: The ClientID of the newly added client.
     """
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
 
-    # Serialize metadata as a string for storage
-    metadata_str = str(metadata)
+    cursor.execute('''
+        INSERT INTO Clients (Name, ContactInfo, FirstTimeCaller)
+        VALUES (?, ?, ?)
+    ''', (name, contact_info, first_time_caller))
 
-    # Insert the call into the Calls table
+    conn.commit()
+    client_id = cursor.lastrowid
+    conn.close()
+
+    return client_id
+
+# Record a new call for a client
+def record_call(client_id: int, metadata: Dict, transcription: str, sentiment: str, urgency: str, intent: str, assigned_agent_id: int):
+    """
+    Record a new call for a client.
+
+    Args:
+        client_id (int): The unique ID of the client.
+        metadata (Dict): Metadata about the call.
+        transcription (str): Transcription of the call.
+        sentiment (str): Sentiment of the call.
+        urgency (str): Urgency of the call.
+        intent (str): Intent of the call.
+        assigned_agent_id (int): The ID of the assigned agent.
+    """
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    # Serialize metadata as a JSON string
+    metadata_json = json.dumps(metadata)
+
     cursor.execute('''
         INSERT INTO Calls (ClientID, Metadata, Transcription, Sentiment, Urgency, Intent, AssignedAgentID)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (client_id, metadata_str, transcription, sentiment, urgency, intent, agent_id))
+    ''', (client_id, metadata_json, transcription, sentiment, urgency, intent, assigned_agent_id))
 
     conn.commit()
     conn.close()
+
+# Fetch all clients
+def get_all_clients() -> List[Dict]:
+    """
+    Fetch all clients in the database.
+
+    Returns:
+        List[Dict]: A list of dictionaries representing clients.
+    """
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM Clients")
+    clients = cursor.fetchall()
+    conn.close()
+
+    return [
+        {
+            "ClientID": client[0],
+            "Name": client[1],
+            "ContactInfo": client[2],
+            "FirstTimeCaller": client[3],
+        }
+        for client in clients
+    ]

@@ -3,10 +3,11 @@ from pydub import AudioSegment
 import os
 import speech_recognition as sr
 from call_analyzer import CallAnalyzer  # Import the CallAnalyzer class
-from database.agent_database import get_all_agents  # For displaying agent data
+from database.agent_database import get_all_agents, get_agent_schedule  # For displaying agent data
 from database.client_database import add_client, get_calls_by_client  # For client data
 from utils.agent_matching import assign_agent_and_schedule  # For agent matching
 import pandas as pd  # For structured data display
+from datetime import datetime, timedelta
 
 # Helper function: Save uploaded audio file
 def save_audio_file(uploaded_file, output_path="temp_audio.mp3"):
@@ -99,10 +100,10 @@ if uploaded_file and transcription:
         st.write("**Extracted Metadata:**")
         st.json(analysis_results["metadata"])
 
-         # Extracted name from metadata
+        # Extracted name from metadata
         extracted_name = analysis_results["metadata"].get("name", [""])[0] if analysis_results["metadata"].get("name") else ""
 
- # Agent Matching and Scheduling Workflow
+# Agent Matching and Scheduling Workflow
 if st.checkbox("Perform Agent Matching and Schedule"):
     st.info("Matching a suitable agent for the call...")
 
@@ -135,6 +136,11 @@ if st.checkbox("Perform Agent Matching and Schedule"):
             st.write(f"**Shift Time:** {matched_agent['ShiftStart']} - {matched_agent['ShiftEnd']}")
             st.write(f"**Tiredness Level:** {matched_agent['TirednessLevel']}")
             st.success("Agent successfully assigned to the call!")
+
+            # Display the updated schedule for the agent
+            st.subheader("Agent's Updated Schedule")
+            agent_schedule = get_agent_schedule(matched_agent["AgentID"])
+            st.write(agent_schedule)
         else:
             st.warning("No suitable agent found. Please check agent availability or database entries.")
 

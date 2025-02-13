@@ -1,6 +1,7 @@
-from database.agent_database import get_all_agents, update_agent_status
+from database.agent_database import get_all_agents, update_agent_status, add_schedule
 from database.client_database import record_call
 from typing import Dict, List, Optional
+from datetime import datetime, timedelta
 
 def match_agent(urgency: str, intent: str) -> Optional[Dict]:
     """
@@ -93,10 +94,20 @@ def assign_agent_and_schedule(
             sentiment=sentiment,
             urgency=urgency,
             intent=intent,
-            agent_id=matched_agent["AgentID"],
+            assigned_agent_id=matched_agent["AgentID"],
         )
 
-        # Step 4: Return the matched agent
+        # Step 4: Add the call to the agent's schedule
+        start_time = datetime.now()
+        end_time = start_time + timedelta(minutes=30)  # Assuming each call lasts 30 minutes
+        add_schedule(
+            agent_id=matched_agent["AgentID"],
+            client_id=client_id,
+            start_time=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            end_time=end_time.strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+        # Step 5: Return the matched agent
         return matched_agent
 
     return None
