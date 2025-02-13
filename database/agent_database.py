@@ -18,7 +18,7 @@ def initialize_agent_database():
             AgentID INTEGER PRIMARY KEY AUTOINCREMENT,
             Name TEXT,
             Proficiency TEXT,
-            Specialization TEXT,
+            Specialization TEXT,-
             Status TEXT,
             CurrentCalls INTEGER,
             ShiftStart TIME,
@@ -29,9 +29,9 @@ def initialize_agent_database():
 
     # Insert mockup agent data
     agents = [
-        ("Alice", "High", "Support", "Available", 0, "08:00", "16:00", 10),
-        ("Bob", "Medium", "Sales", "Available", 0, "09:00", "17:00", 20),
-        ("Charlie", "High", "Technical Support", "Busy", 2, "10:00", "18:00", 30),
+        ("Rajesh", "High", "Death Claims", "Available", 0, "08:00", "16:00", 10),
+        ("Mukesh", "Medium", "Motor Claims", "Available", 0, "09:00", "17:00", 20),
+        ("Richa", "High", "Technical Support", "Available", 2, "10:00", "18:00", 30),
     ]
 
     cursor.executemany('''

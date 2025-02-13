@@ -8,3 +8,4 @@ textblob
 numpy
 transformers
 librosa
+torchaudio
