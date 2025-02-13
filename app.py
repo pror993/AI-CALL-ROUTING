@@ -99,13 +99,16 @@ if uploaded_file and transcription:
         st.write("**Extracted Metadata:**")
         st.json(analysis_results["metadata"])
 
+         # Extracted name from metadata
+        extracted_name = analysis_results["metadata"].get("name", [""])[0] if analysis_results["metadata"].get("name") else ""
+
  # Agent Matching and Scheduling Workflow
 if st.checkbox("Perform Agent Matching and Schedule"):
     st.info("Matching a suitable agent for the call...")
 
     # Input fields for client details
-    client_name = st.text_input("Enter Client Name", "John Doe")
-    contact_info = st.text_input("Enter Contact Info (e.g., email, phone)", "johndoe@example.com")
+    client_name = st.text_input("Enter Client Name", extracted_name)
+    contact_info = st.text_input("Enter Contact Info (e.g., email, phone)", "9987549758")
     first_time_caller = st.checkbox("Is this their first time calling?", value=True)
 
     # Button to start the assignment process

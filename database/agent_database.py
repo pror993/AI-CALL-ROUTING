@@ -18,7 +18,7 @@ def initialize_agent_database():
             AgentID INTEGER PRIMARY KEY AUTOINCREMENT,
             Name TEXT,
             Proficiency TEXT,
-            Specialization TEXT,-
+            Specialization TEXT,
             Status TEXT,
             CurrentCalls INTEGER,
             ShiftStart TIME,
