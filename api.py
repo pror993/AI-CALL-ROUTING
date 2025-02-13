@@ -115,13 +115,13 @@ async def get_client_call_history(client_id: int):
         JSON array, where each item represents a call made by the client:
         [
             {
-                "CallID": int,
                 "ClientID": int,
                 "Metadata": str,
                 "Transcription": str,
                 "Sentiment": str,
                 "Urgency": str,
                 "Intent": str,
+                "ClaimID": int,
                 "AssignedAgentID": int
             },
             ...
@@ -191,13 +191,13 @@ async def get_all_clients_api():
                 "FirstTimeCaller": bool,
                 "CallHistory": [
                     {
-                        "CallID": int,
                         "ClientID": int,
                         "Metadata": str,
                         "Transcription": str,
                         "Sentiment": str,
                         "Urgency": str,
                         "Intent": str,
+                        "ClaimID": int,
                         "AssignedAgentID": int
                     },
                     ...

@@ -33,6 +33,7 @@ def initialize_client_database():
             Sentiment TEXT,
             Urgency TEXT,
             Intent TEXT,
+            ClaimID INTEGER,
             AssignedAgentID INTEGER,
             FOREIGN KEY (ClientID) REFERENCES Clients (ClientID),
             FOREIGN KEY (AssignedAgentID) REFERENCES Agents (AgentID)
@@ -53,14 +54,14 @@ def initialize_client_database():
 
     # Insert mockup call data
     calls = [
-        (1, "Metadata for call 1", "Transcription for call 1", "Positive", "High", "Inquiry", 1),
-        (2, "Metadata for call 2", "Transcription for call 2", "Negative", "Low", "Complaint", 2),
-        (3, "Metadata for call 3", "Transcription for call 3", "Neutral", "Medium", "Support", 3),
+        (1, "Metadata for call 1", "Transcription for call 1", "Positive", "High", "Inquiry", 1, 1),
+        (2, "Metadata for call 2", "Transcription for call 2", "Negative", "Low", "Complaint", 2, 2),
+        (3, "Metadata for call 3", "Transcription for call 3", "Neutral", "Medium", "Support", 3, 3),
     ]
 
     cursor.executemany('''
-        INSERT INTO Calls (ClientID, Metadata, Transcription, Sentiment, Urgency, Intent, AssignedAgentID)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO Calls (ClientID, Metadata, Transcription, Sentiment, Urgency, Intent, ClaimID, AssignedAgentID)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', calls)
 
     conn.commit()
@@ -120,15 +121,16 @@ def get_calls_by_client(client_id: int) -> List[Dict]:
             "Sentiment": call[4],
             "Urgency": call[5],
             "Intent": call[6],
-            "AssignedAgentID": call[7],
+            "ClaimID": call[7],
+            "AssignedAgentID": call[8],
         }
         for call in calls
     ]
 
-# Add a new client to the database
+# Add a new client to the database or return the existing client ID if the client already exists
 def add_client(name: str, contact_info: str, first_time_caller: bool) -> int:
     """
-    Add a new client to the database.
+    Add a new client to the database or return the existing client ID if the client already exists.
 
     Args:
         name (str): The name of the client.
@@ -136,24 +138,31 @@ def add_client(name: str, contact_info: str, first_time_caller: bool) -> int:
         first_time_caller (bool): Whether the client is a first-time caller.
 
     Returns:
-        int: The ClientID of the newly added client.
+        int: The ClientID of the client.
     """
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
 
-    cursor.execute('''
-        INSERT INTO Clients (Name, ContactInfo, FirstTimeCaller)
-        VALUES (?, ?, ?)
-    ''', (name, contact_info, first_time_caller))
+    # Check if the client already exists based on contact information
+    cursor.execute("SELECT ClientID FROM Clients WHERE ContactInfo = ?", (contact_info,))
+    client = cursor.fetchone()
 
-    conn.commit()
-    client_id = cursor.lastrowid
+    if client:
+        client_id = client[0]
+    else:
+        # Insert new client if not already present
+        cursor.execute('''
+            INSERT INTO Clients (Name, ContactInfo, FirstTimeCaller)
+            VALUES (?, ?, ?)
+        ''', (name, contact_info, first_time_caller))
+        conn.commit()
+        client_id = cursor.lastrowid
+
     conn.close()
-
     return client_id
 
 # Record a new call for a client
-def record_call(client_id: int, metadata: Dict, transcription: str, sentiment: str, urgency: str, intent: str, assigned_agent_id: int):
+def record_call(client_id: int, metadata: Dict, transcription: str, sentiment: str, urgency: str, intent: str, claim_id: int, assigned_agent_id: int):
     """
     Record a new call for a client.
 
@@ -164,6 +173,7 @@ def record_call(client_id: int, metadata: Dict, transcription: str, sentiment: s
         sentiment (str): Sentiment of the call.
         urgency (str): Urgency of the call.
         intent (str): Intent of the call.
+        claim_id (int): The ID of the claim.
         assigned_agent_id (int): The ID of the assigned agent.
     """
     conn = sqlite3.connect(DATABASE_PATH)
@@ -173,9 +183,9 @@ def record_call(client_id: int, metadata: Dict, transcription: str, sentiment: s
     metadata_json = json.dumps(metadata)
 
     cursor.execute('''
-        INSERT INTO Calls (ClientID, Metadata, Transcription, Sentiment, Urgency, Intent, AssignedAgentID)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (client_id, metadata_json, transcription, sentiment, urgency, intent, assigned_agent_id))
+        INSERT INTO Calls (ClientID, Metadata, Transcription, Sentiment, Urgency, Intent, ClaimID, AssignedAgentID)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (client_id, metadata_json, transcription, sentiment, urgency, intent, claim_id, assigned_agent_id))
 
     conn.commit()
     conn.close()

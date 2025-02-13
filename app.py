@@ -4,7 +4,7 @@ import os
 import speech_recognition as sr
 from call_analyzer import CallAnalyzer  # Import the CallAnalyzer class
 from database.agent_database import get_all_agents, get_agent_schedule  # For displaying agent data
-from database.client_database import add_client, get_calls_by_client  # For client data
+from database.client_database import add_client, get_calls_by_client, get_all_clients  # For client data
 from utils.agent_matching import assign_agent_and_schedule  # For agent matching
 import pandas as pd  # For structured data display
 from datetime import datetime, timedelta
@@ -65,10 +65,10 @@ if uploaded_file:
         st.write(transcription)
 
 # Helper function: Perform analysis combining text and audio features
-def combined_analysis(transcription, audio_path, call_analyzer, user_region=None):
+def combined_analysis(transcription, audio_path, call_analyzer):
     try:
         # Perform combined analysis (text + audio features)
-        analysis_results = call_analyzer.analyze(transcription, audio_path, region=user_region)
+        analysis_results = call_analyzer.analyze(transcription, audio_path)
         
         # Determine language proficiency
         language_proficiency = call_analyzer.analyze_language_proficiency(transcription)
@@ -84,10 +84,9 @@ call_analyzer = CallAnalyzer()
 if uploaded_file and transcription:
     # Step 2: Perform Combined Analysis (Text + Audio Features)
     st.info("Analyzing transcription and audio features for sentiment, urgency, and metadata...")
-    user_region = st.text_input("Enter region (optional, e.g., North, East):")
 
     analysis_results, language_proficiency = combined_analysis(
-        transcription, audio_file_path, call_analyzer, user_region
+        transcription, audio_file_path, call_analyzer
     )
 
     if analysis_results:
@@ -103,6 +102,11 @@ if uploaded_file and transcription:
         # Extracted name from metadata
         extracted_name = analysis_results["metadata"].get("name", [""])[0] if analysis_results["metadata"].get("name") else ""
 
+        # Extracted claim ID from metadata and ensure it's an integer
+        extracted_claim_id = analysis_results["metadata"].get("claim_id", [None])[0]
+        if extracted_claim_id is not None:
+            extracted_claim_id = int(extracted_claim_id)
+
 # Agent Matching and Scheduling Workflow
 if st.checkbox("Perform Agent Matching and Schedule"):
     st.info("Matching a suitable agent for the call...")
@@ -111,6 +115,7 @@ if st.checkbox("Perform Agent Matching and Schedule"):
     client_name = st.text_input("Enter Client Name", extracted_name)
     contact_info = st.text_input("Enter Contact Info (e.g., email, phone)", "9987549758")
     first_time_caller = st.checkbox("Is this their first time calling?", value=True)
+    claim_id = st.number_input("Enter Claim ID", min_value=1, step=1, value=extracted_claim_id if extracted_claim_id else 1)
 
     # Button to start the assignment process
     if st.button("Assign Agent to Call"):
@@ -125,6 +130,7 @@ if st.checkbox("Perform Agent Matching and Schedule"):
             metadata=analysis_results["metadata"],
             transcription=transcription,
             sentiment=analysis_results["sentiment"],
+            claim_id=claim_id
         )
 
         # Display the results of the agent assignment

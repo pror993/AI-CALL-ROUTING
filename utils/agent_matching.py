@@ -60,6 +60,7 @@ def assign_agent_and_schedule(
     metadata: Dict,
     transcription: str,
     sentiment: str,
+    claim_id: int
 ) -> Optional[Dict]:
     """
     Assign a matched agent to a call, update their status, and record the call.
@@ -71,6 +72,7 @@ def assign_agent_and_schedule(
         metadata (Dict): Additional metadata extracted from the conversation.
         transcription (str): The text transcription of the conversation.
         sentiment (str): The sentiment detected in the conversation (Positive, Neutral, Negative).
+        claim_id (int): The ID of the claim.
 
     Returns:
         Dict: Details of the assigned agent, or None if no agent is available.
@@ -94,6 +96,7 @@ def assign_agent_and_schedule(
             sentiment=sentiment,
             urgency=urgency,
             intent=intent,
+            claim_id=claim_id,
             assigned_agent_id=matched_agent["AgentID"],
         )
 
