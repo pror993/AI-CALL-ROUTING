@@ -16,6 +16,8 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+# Define your API endpoints here
+
 # --- API ROUTES ---
 
 # 1. Fetch agent details by their AgentID
