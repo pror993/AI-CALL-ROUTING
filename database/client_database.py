@@ -42,9 +42,16 @@ def initialize_client_database():
 
     # Insert mockup client data
     clients = [
-        ("Amit Sharma", "amit.sharma@example.com", True),
-        ("Priya Singh", "priya.singh@example.com", False),
-        ("Vikram Patel", "vikram.patel@example.com", True),
+        ("Harsh Kumar", "+919876543210", True),
+        ("Anita Rao", "+919876543211", False),
+        ("Rohit Sharma", "+919876543212", True),
+        ("Sneha Kapoor", "+919876543213", False),
+        ("Vikas Gupta", "+919876543214", True),
+        ("Suresh Reddy", "+919876543215", False),
+        ("Neha Gupta", "+919876543216", True),
+        ("Rahul Verma", "+919876543217", False),
+        ("Pooja Desai", "+919876543218", True),
+        ("Karan Joshi", "+919876543219", False),
     ]
 
     cursor.executemany('''
@@ -54,9 +61,16 @@ def initialize_client_database():
 
     # Insert mockup call data
     calls = [
-        (1, "Metadata for call 1", "Transcription for call 1", "Positive", "High", "Inquiry", 1, 1),
-        (2, "Metadata for call 2", "Transcription for call 2", "Negative", "Low", "Complaint", 2, 2),
-        (3, "Metadata for call 3", "Transcription for call 3", "Neutral", "Medium", "Support", 3, 3),
+        (1, json.dumps({"name": ["Harsh Kumar"], "purpose": "Hospital Bill issue", "claim_id": "5"}), "I submitted a health insurance claim last week. Can you update me on its status and expected payout date?...", "Positive", "High", "Inquiry", 1, 1),
+        (2, json.dumps({"name": ["Anita Rao"], "purpose": "Pre-authorization for Treatment", "claim_id": "12"}), "I need to undergo surgery next week. Can you confirm if my insurance policy covers it and what documents are required for approval?...", "Negative", "Medium", "Support", 2, 2),
+        (3, json.dumps({"name": ["Rohit Sharma"], "purpose": "Credit Card Chargeback Requests", "claim_id": "8"}), "I noticed an unauthorized transaction on my credit card. How can I dispute this charge and request a refund?...", "Neutral", "High", "Complaint", 3, 3),
+        (4, json.dumps({"name": ["Sneha Kapoor"], "purpose": "Flight Delay Compensation", "claim_id": "15"}), "My flight was delayed for over 6 hours. Am I eligible for compensation under my travel insurance policy?...", "Positive", "Low", "Inquiry", 4, 1),
+        (5, json.dumps({"name": ["Vikas Gupta"], "purpose": "Product Damage Claim", "claim_id": "20"}), "I received a damaged phone from your online store. Can you process a replacement under the return policy?...", "Negative", "Medium", "Support", 5, 2),
+        (6, "Metadata for call 6", "Transcription for call 6", "Neutral", "Medium", "Support", 6, 3),
+        (7, "Metadata for call 7", "Transcription for call 7", "Positive", "High", "Inquiry", 7, 1),
+        (8, "Metadata for call 8", "Transcription for call 8", "Negative", "Low", "Complaint", 8, 2),
+        (9, "Metadata for call 9", "Transcription for call 9", "Neutral", "Medium", "Support", 9, 3),
+        (10, "Metadata for call 10", "Transcription for call 10", "Positive", "High", "Inquiry", 10, 1),
     ]
 
     cursor.executemany('''

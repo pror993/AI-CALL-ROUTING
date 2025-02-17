@@ -156,8 +156,6 @@ class CallAnalyzer:
 
         return sentiment, emotion
 
-    
-
     def detect_urgency(self, text):
         """
         Detect urgency levels based on keywords.
@@ -178,7 +176,6 @@ class CallAnalyzer:
         # Return the highest urgency level (if multiple levels have the same score, return the more urgent one)
         return max((level for level, score in scores.items() if score == max_score), key=lambda x: ["low", "medium", "high"].index(x))
 
-
     def extract_audio_features(self, audio_path):
         """
         Extract audio features using librosa.
@@ -198,9 +195,9 @@ class CallAnalyzer:
         Extract a name from the transcription, if mentioned.
         """
         patterns = [
-            r"\b(?:my\s*name\s*is|i\'m|im)\s*([A-Z][a-z]+)\b",
-            r"\b([A-Z][a-z]+)\s*speaking\b",
-            r"\b(?:this\s*is)\s*([A-Z][a-z]+)\b",
+            r"\b(?:my\s*name\s*is|i\'m|im)\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b",
+            r"\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s*speaking\b",
+            r"\b(?:this\s*is)\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\b",
         ]
         names = {ent.text for ent in self.nlp(text).ents if ent.label_ == "PERSON"}
         for pattern in patterns:
@@ -211,18 +208,32 @@ class CallAnalyzer:
         """
         Extract the purpose of the call from the transcription.
         """
-        match = re.search(r"(calling to|here to) (.+)", text, re.IGNORECASE)
-        if match:
-            return match.group(2)
+        patterns = [
+            r"\b(?:calling|here|discuss|talk|speak)\s*(?:to|about|regarding)\s*(.+?)\b",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                # Capture more than 2-3 words after the keywords
+                purpose = match.group(1)
+                additional_words = re.search(r'\b(?:calling|here|discuss|talk|speak)\s*(?:to|about|regarding)\s*(.+?)(?:\s+\w+){0,20}', text, re.IGNORECASE)
+                if additional_words:
+                    purpose += " " + additional_words.group(1)
+                return purpose.strip()
         return None
 
     def extract_claim_id(self, text):
         """
         Extract a claim ID if mentioned in the transcription.
         """
-        match = re.search(r"(claim id is|claim number is|claim) (\d+)", text, re.IGNORECASE)
-        if match:
-            return match.group(2)
+        patterns = [
+            r"\b(?:claim\s*(?:id|number|#)\s*is\s*(\d+))\b",
+            r"\b(?:claim\s*(?:id|number|#)\s*(\d+))\b",
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                return match.group(1)
         return None
 
     def analyze_language_proficiency(self, text):

@@ -9,6 +9,89 @@ from utils.agent_matching import assign_agent_and_schedule  # For agent matching
 import pandas as pd  # For structured data display
 from datetime import datetime, timedelta
 
+# Custom CSS for professional styling
+st.markdown(
+    """
+    <style>
+        body {
+            background-color: #FFF0DC;
+            color: #131010;
+        }
+        .main {
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #FFFFFF;
+            border-left: 5px solid #F0BB78;
+            border-right: 5px solid #F0BB78;
+        }
+        .stButton>button {
+            background-color: #F0BB78 !important;
+            color: #131010 !important;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            padding: 8px 16px;
+        }
+        .stNumberInput>div>div>input, .stTextInput>div>div>input {
+            border-radius: 5px;
+            padding: 8px;
+            background-color: #FFF0DC;
+            color: #543A14;
+            border: 1px solid #543A14;
+        }
+        .stDataFrame {
+            background-color: #FFFFFF;
+            color: #131010;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        .stMarkdown h2, .stMarkdown h3 {
+            color: #543A14;
+        }
+        .stMarkdown p {
+            color: #131010;
+        }
+        .stExpander {
+            background-color: #F0BB78;
+            border-radius: 10px;
+            padding: 10px;
+            color: #131010;
+        }
+        .card {
+            background-color: #FFF0DC;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .card h4 {
+            margin: 0;
+            color: #543A14;
+        }
+        .card p {
+            margin: 5px 0;
+            color: #131010;
+        }
+        .info-box {
+            background-color: #F0BB78;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: #131010;
+        }
+        .info-box h4 {
+            margin: 0;
+            color: #543A14;
+        }
+        .info-box p {
+            margin: 5px 0;
+            color: #131010;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Helper function: Save uploaded audio file
 def save_audio_file(uploaded_file, output_path="temp_audio.mp3"):
     with open(output_path, "wb") as f:
@@ -135,7 +218,7 @@ if st.checkbox("Perform Agent Matching and Schedule"):
 
         # Display the results of the agent assignment
         if matched_agent:
-            st.subheader("Matched Agent")
+            st.subheader("Assigned Agent")
             st.write(f"**Name:** {matched_agent['Name']}")
             st.write(f"**Proficiency:** {matched_agent['Proficiency']}")
             st.write(f"**Specialization:** {matched_agent['Specialization']}")
