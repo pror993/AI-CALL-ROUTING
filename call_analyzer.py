@@ -215,12 +215,12 @@ class CallAnalyzer:
 
         # Predefined common claim types
         claim_types = {
-            "death": ["death claim", "life insurance claim", "funeral claim"],
-            "health": ["medical claim", "health claim", "hospital bill claim"],
-            "auto": ["car insurance claim", "vehicle damage claim", "auto claim"],
-            "property": ["home insurance claim", "fire damage claim", "property claim"],
-            "disability": ["disability claim", "long-term disability claim"],
-            "accident": ["accident claim", "injury claim", "workplace injury claim"],
+            "death claim": ["death claim", "life insurance claim", "funeral claim"],
+            "health claim": ["medical claim", "health claim", "hospital bill claim"],
+            "auto claim": ["car insurance claim", "vehicle damage claim", "auto claim"],
+            "property claim": ["home insurance claim", "fire damage claim", "property claim"],
+            "disability claim": ["disability claim", "long-term disability claim"],
+            "accident claim": ["accident claim", "injury claim", "workplace injury claim"],
         }
 
         # Extract phrases using dependency parsing
