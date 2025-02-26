@@ -6,7 +6,7 @@ import librosa
 from transformers import pipeline
 import warnings
 import numpy as np
-
+from keybert import KeyBERT
 warnings.filterwarnings("ignore")
 
 
@@ -19,6 +19,7 @@ class CallAnalyzer:
             model="j-hartmann/emotion-english-distilroberta-base",
             return_all_scores=True,
         )
+        self.ner_pipeline = pipeline("ner", model="dbmdz/bert-large-cased-finetuned-conll03-english")
 
     def analyze(self, text, audio_path, region=None):
         """
@@ -204,23 +205,45 @@ class CallAnalyzer:
             names.update(match.group(1).capitalize() for match in re.finditer(pattern, text, re.IGNORECASE))
         return list(names)
 
+    
+
     def extract_purpose(self, text):
         """
-        Extract the purpose of the call from the transcription.
+        Extract the type of claim mentioned in the call transcription using spaCy dependency parsing and KeyBERT.
         """
-        patterns = [
-            r"\b(?:calling|here|discuss|talk|speak)\s*(?:to|about|regarding)\s*(.+?)\b",
-        ]
-        for pattern in patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                # Capture more than 2-3 words after the keywords
-                purpose = match.group(1)
-                additional_words = re.search(r'\b(?:calling|here|discuss|talk|speak)\s*(?:to|about|regarding)\s*(.+?)(?:\s+\w+){0,20}', text, re.IGNORECASE)
-                if additional_words:
-                    purpose += " " + additional_words.group(1)
-                return purpose.strip()
-        return None
+        doc = self.nlp(text)
+
+        # Predefined common claim types
+        claim_types = {
+            "death": ["death claim", "life insurance claim", "funeral claim"],
+            "health": ["medical claim", "health claim", "hospital bill claim"],
+            "auto": ["car insurance claim", "vehicle damage claim", "auto claim"],
+            "property": ["home insurance claim", "fire damage claim", "property claim"],
+            "disability": ["disability claim", "long-term disability claim"],
+            "accident": ["accident claim", "injury claim", "workplace injury claim"],
+        }
+
+        # Extract phrases using dependency parsing
+        extracted_phrases = set()
+        for token in doc:
+            if token.text.lower() == "claim" and token.head:
+                phrase = f"{token.head.text.lower()} claim"
+                extracted_phrases.add(phrase)
+
+        # Use KeyBERT for additional keyword extraction
+        kw_model = KeyBERT()
+        keywords = kw_model.extract_keywords(text, keyphrase_ngram_range=(1, 2), stop_words="english", top_n=3)
+        extracted_phrases.update([kw[0].lower() for kw in keywords])
+
+        # Match extracted phrases to known claim types
+        detected_claim_type = None
+        for claim_category, keywords in claim_types.items():
+            if any(phrase in extracted_phrases for phrase in keywords):
+                detected_claim_type = claim_category
+                break  # Stop at the first match
+
+        return detected_claim_type if detected_claim_type else "general inquiry"
+
 
     def extract_claim_id(self, text):
         """

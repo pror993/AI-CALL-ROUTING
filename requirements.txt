@@ -10,3 +10,4 @@ transformers
 librosa
 torchaudio
 streamlit-extras
+keybert

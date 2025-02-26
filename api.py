@@ -212,3 +212,61 @@ async def get_all_clients_api():
     for client in clients:
         client["CallHistory"] = get_calls_by_client(client["ClientID"])
     return clients  # JSON response with all clients and their call histories
+
+
+# 7. Fetch agent's schedule along with client's call history
+@app.get("/agents/{agent_id}/schedule_with_client_history")
+async def get_agent_schedule_with_client_history(agent_id: int):
+    """
+    Get the schedule of a specific agent by their unique AgentID along with the call history of each client in the schedule.
+
+    Args:
+        agent_id (int): The unique ID of the agent.
+
+    Returns:
+        JSON array, where each item represents a scheduled call along with the client's call history:
+        [
+            {
+                "ScheduleID": int,
+                "AgentID": int,
+                "ClientID": int,
+                "StartTime": str,
+                "EndTime": str,
+                "ClientName": str,
+                "ClientContactInfo": str,
+                "ClientFirstTimeCaller": bool,
+                "ClientCallHistory": [
+                    {
+                        "ClientID": int,
+                        "Metadata": str,
+                        "Transcription": str,
+                        "Sentiment": str,
+                        "Urgency": str,
+                        "Intent": str,
+                        "ClaimID": int,
+                        "AssignedAgentID": int
+                    },
+                    ...
+                ]
+            },
+            ...
+        ]
+
+    HTTP 404 Error if the agent or their schedule cannot be found.
+    """
+    # Check if agent exists (to validate the agent_id)
+    agent = get_agent_by_id(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail=f"Agent with ID {agent_id} not found.")
+
+    # Retrieve the agent's schedule from the database
+    schedule = get_agent_schedule(agent_id)
+    if not schedule:
+        raise HTTPException(status_code=404, detail=f"No schedule found for agent with ID {agent_id}.")
+
+    # Add client's call history to each schedule entry
+    for entry in schedule:
+        client_id = entry["ClientID"]
+        entry["ClientCallHistory"] = get_calls_by_client(client_id)
+
+    return schedule  # JSON response with agent's schedule and client's call history
