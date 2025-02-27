@@ -92,6 +92,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Title of the application
+st.title("GenCallAI")
+
 # Helper function: Save uploaded audio file
 def save_audio_file(uploaded_file, output_path="temp_audio.mp3"):
     with open(output_path, "wb") as f:
@@ -183,10 +186,10 @@ if uploaded_file and transcription:
         st.json(analysis_results["metadata"])
 
         # Extracted name from metadata
-        extracted_name = analysis_results["metadata"].get("name", [""])[0] if analysis_results["metadata"].get("name") else ""
+        extracted_name = analysis_results["metadata"].get("name", [""])[0] if analysis_results["metadata"].get("name") else "Ravi Singh"
 
         # Extracted claim ID from metadata and ensure it's an integer
-        extracted_claim_id = analysis_results["metadata"].get("claim_id", [None])[0]
+        extracted_claim_id = analysis_results["metadata"].get("claim_id", [None])[0] if analysis_results["metadata"].get("claim_id") else "11"
         if extracted_claim_id is not None:
             extracted_claim_id = int(extracted_claim_id)
 
@@ -198,7 +201,7 @@ if st.checkbox("Perform Agent Matching and Schedule"):
     client_name = st.text_input("Enter Client Name", extracted_name)
     contact_info = st.text_input("Enter Contact Info (e.g., email, phone)", "9987549758")
     first_time_caller = st.checkbox("Is this their first time calling?", value=True)
-    claim_id = st.number_input("Enter Claim ID", min_value=1, step=1, value=extracted_claim_id if extracted_claim_id else 1)
+    claim_id = st.number_input("Enter Claim ID*", min_value=11, step=1, value=extracted_claim_id if extracted_claim_id else 11)
 
     # Button to start the assignment process
     if st.button("Assign Agent to Call"):
@@ -226,10 +229,13 @@ if st.checkbox("Perform Agent Matching and Schedule"):
             st.write(f"**Tiredness Level:** {matched_agent['TirednessLevel']}")
             st.success("Agent successfully assigned to the call!")
 
-            # Display the updated schedule for the agent
-            st.subheader("Agent's Updated Schedule")
+            # Load the updated schedule for the agent
             agent_schedule = get_agent_schedule(matched_agent["AgentID"])
-            st.write(agent_schedule)
+
+            # Checkbox to show the updated schedule
+            if st.checkbox("Show Agent's Updated Schedule"):
+                st.subheader("Agent's Updated Schedule")
+                st.write(agent_schedule)
         else:
             st.warning("No suitable agent found. Please check agent availability or database entries.")
 
