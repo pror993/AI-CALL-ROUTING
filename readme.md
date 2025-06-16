@@ -164,9 +164,6 @@ AI-CALL-ROUTING/
 
 ---
 
-## Authors & Credits
-- Built with ❤️ using Python, FastAPI, Streamlit, and open-source AI libraries.
 
----
 
 For questions or contributions, please open an issue or pull request!
