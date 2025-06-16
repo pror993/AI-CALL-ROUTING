@@ -8,11 +8,10 @@
 - [Tech Stack](#tech-stack)
 - [Key Components](#key-components)
   - [1. app.py (Streamlit App)](#1-apppy-streamlit-app)
-  - [2. call_analyzer.py (NLP & Audio Analysis)](#2-call_analyzerpy-nlp--audio-analysis)
+  - [2. call_analyzer.py (Deep AI & Audio Analysis)](#2-call_analyzerpy-deep-ai--audio-analysis)
   - [3. utils/agent_matching.py (Agent Matching & Scheduling)](#3-utilsagent_matchingpy-agent-matching--scheduling)
   - [4. Database Layer](#4-database-layer)
   - [5. API Layer (FastAPI)](#5-api-layer-fastapi)
-  - [6. Dashboards](#6-dashboards)
 - [How to Run](#how-to-run)
 - [Folder Structure](#folder-structure)
 - [Extending the Project](#extending-the-project)
@@ -25,11 +24,11 @@ GenCallAI is an end-to-end AI-driven system for analyzing customer calls, extrac
 ---
 
 ## Architecture & Workflow
-1. **Audio Upload**: User uploads a call audio file via the Streamlit app.
-2. **Transcription & Analysis**: The audio is transcribed and analyzed for sentiment, urgency, intent, and metadata.
-3. **Agent Matching**: The system matches the best agent using AI-driven logic.
+1. **Audio Upload**: User uploads a call audio file via the Streamlit app (`app.py`).
+2. **Transcription & Deep AI Analysis**: The audio is transcribed and analyzed for sentiment, urgency, intent, and metadata using advanced NLP and audio feature extraction (`call_analyzer.py`).
+3. **Agent Matching**: The system matches the best agent using AI-driven logic (`utils/agent_matching.py`).
 4. **Scheduling & Recording**: The call is scheduled, and all data is stored in a SQLite database.
-5. **Dashboards & APIs**: Managers and agents can view schedules, call histories, and analytics via Streamlit/React dashboards or REST APIs.
+5. **Dashboards & APIs**: Managers and agents can view schedules, call histories, and analytics via Streamlit dashboards (`frontend.py`, `app.py`) or REST APIs (`api.py`).
 
 ---
 
@@ -45,7 +44,6 @@ GenCallAI is an end-to-end AI-driven system for analyzing customer calls, extrac
 
 ### Frontend
 - **Streamlit**: Rapid dashboard and UI prototyping
-- **React + TailwindCSS** (optional): Modern, interactive dashboard
 
 ### Other
 - **Uvicorn**: ASGI server for FastAPI
@@ -67,23 +65,35 @@ GenCallAI is an end-to-end AI-driven system for analyzing customer calls, extrac
   - Shows agent schedules and client call histories
 - **Tech Stack**: Streamlit, pydub, speechrecognition, pandas, custom CSS for UI
 
-### 2. `call_analyzer.py` (NLP & Audio Analysis)
-- **Purpose**: Core logic for analyzing call transcriptions and audio features.
-- **Features**:
-  - **Text Analysis**: Sentiment (TextBlob), urgency (keyword-based), intent (rule-based), metadata (spaCy NER, regex, KeyBERT)
-  - **Audio Analysis**: Extracts features (RMS energy, zero-crossing rate, MFCCs) using librosa
-  - **Emotion Detection**: Uses HuggingFace transformers (distilroberta-base)
-  - **Language Proficiency**: Heuristic based on word length, lexical diversity, grammar (TextBlob)
-  - **Combined Sentiment**: Refines sentiment using both text and audio cues
-- **Tech Stack**: spaCy, transformers, TextBlob, librosa, KeyBERT, numpy
+### 2. `call_analyzer.py` (Deep AI & Audio Analysis)
+- **Purpose**: This is the core AI engine for the project, responsible for extracting actionable insights from both the audio and its transcription.
+- **Detailed Features**:
+  - **Text Analysis**:
+    - **Sentiment Analysis**: Uses TextBlob for polarity and a HuggingFace emotion classifier for nuanced emotion detection.
+    - **Urgency Detection**: Keyword-based detection of urgency levels (high, medium, low) from the transcription.
+    - **Intent Detection**: Rule-based and keyword-driven, e.g., detecting claim-related or general inquiries.
+    - **Metadata Extraction**: Combines spaCy NER, regex, and KeyBERT to extract names, claim IDs, and claim types from the transcription.
+  - **Audio Feature Extraction**:
+    - Uses librosa to extract features such as RMS energy (loudness), zero-crossing rate (calmness), MFCCs (timbre), and duration.
+    - These features are used to refine sentiment and urgency, e.g., loud or agitated speech can increase urgency or negative sentiment.
+  - **Emotion Detection**:
+    - Uses HuggingFace transformers (distilroberta-base) to classify emotions in the text, providing a more granular understanding than simple polarity.
+  - **Language Proficiency Estimation**:
+    - Heuristic based on average word length, lexical diversity, and grammar accuracy (via TextBlob correction).
+    - Maps to levels: "Advanced", "Intermediate", "Basic", "Beginner".
+  - **Combined Sentiment**:
+    - Fuses text-based and audio-based cues for a more robust sentiment score, e.g., neutral text but high loudness = likely negative.
+  - **Extensibility**:
+    - Modular design allows easy addition of new NLP or audio features.
+- **Tech Stack**: spaCy, transformers (HuggingFace), TextBlob, librosa, KeyBERT, numpy
 
 ### 3. `utils/agent_matching.py` (Agent Matching & Scheduling)
 - **Purpose**: AI-driven logic for matching the best agent and scheduling calls.
 - **Features**:
-  - **Agent Scoring**: Considers urgency, intent, agent proficiency, specialization, tiredness, and workload
-  - **Priority Queue**: Schedules calls based on urgency
-  - **Database Integration**: Updates agent status, records calls, and manages schedules
-  - **Extensible**: Easy to add new matching criteria (e.g., language, region)
+  - **Agent Scoring**: Considers urgency, intent, agent proficiency, specialization, tiredness, and workload.
+  - **Priority Queue**: Schedules calls based on urgency using Python's `heapq` for real-time prioritization.
+  - **Database Integration**: Updates agent status, records calls, and manages schedules.
+  - **Extensible**: Easy to add new matching criteria (e.g., language, region).
 - **Tech Stack**: Python, heapq (priority queue), datetime, custom database functions
 
 ### 4. Database Layer
@@ -103,21 +113,12 @@ GenCallAI is an end-to-end AI-driven system for analyzing customer calls, extrac
   - CORS enabled for frontend integration
 - **Tech Stack**: FastAPI, Python
 
-### 6. Dashboards
-- **Streamlit Dashboards** (`frontend.py`, `app.py`):
-  - Agent, client, and manager views
-  - Real-time data from backend APIs
-- **React Dashboard** (`agent-client-dashboard/`):
-  - Modern UI (React, TailwindCSS, framer-motion)
-  - Intended for advanced management and analytics
-
 ---
 
 ## How to Run
 1. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
-   cd agent-client-dashboard && npm install && cd ..
    ```
 2. **Initialize databases**:
    ```bash
@@ -128,9 +129,9 @@ GenCallAI is an end-to-end AI-driven system for analyzing customer calls, extrac
    bash run_all.sh
    ```
 4. **Access the apps**:
-   - Streamlit UI: [http://localhost:8501](http://localhost:8501)
-   - FastAPI docs: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - React dashboard: [http://localhost:3000](http://localhost:3000)
+   - Use `app.py` (Streamlit) for uploading and analyzing calls, and agent assignment.
+   - Use `frontend.py` (Streamlit) for dashboards and management views.
+   - Use `api.py` (FastAPI) for programmatic access to agent/client/call data.
 
 ---
 
@@ -139,7 +140,7 @@ GenCallAI is an end-to-end AI-driven system for analyzing customer calls, extrac
 AI-CALL-ROUTING/
 ├── app.py                  # Streamlit app for call upload, analysis, and agent assignment
 ├── api.py                  # FastAPI backend for REST APIs
-├── call_analyzer.py        # NLP and audio analysis logic
+├── call_analyzer.py        # Deep AI and audio analysis logic
 ├── frontend.py             # Streamlit dashboard for agents/clients
 ├── intialize_databases.py  # Script to initialize SQLite databases
 ├── requirements.txt        # Python dependencies
@@ -150,7 +151,6 @@ AI-CALL-ROUTING/
 │   └── data/               # SQLite DB files
 ├── utils/
 │   └── agent_matching.py   # Agent matching and scheduling logic
-└── agent-client-dashboard/ # React frontend (optional)
 ```
 
 ---
@@ -165,7 +165,7 @@ AI-CALL-ROUTING/
 ---
 
 ## Authors & Credits
-- Built with ❤️ using Python, FastAPI, Streamlit, React, and open-source AI libraries.
+- Built with ❤️ using Python, FastAPI, Streamlit, and open-source AI libraries.
 
 ---
 
