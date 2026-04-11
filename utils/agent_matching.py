@@ -1,6 +1,11 @@
-from database.agent_database import get_all_agents, update_agent_status
+from database.agent_database import get_all_agents, update_agent_status, add_schedule
 from database.client_database import record_call
 from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+import heapq
+
+# Priority queue for handling calls based on urgency
+call_queue = []
 
 def match_agent(urgency: str, intent: str) -> Optional[Dict]:
     """
@@ -59,6 +64,7 @@ def assign_agent_and_schedule(
     metadata: Dict,
     transcription: str,
     sentiment: str,
+    claim_id: int
 ) -> Optional[Dict]:
     """
     Assign a matched agent to a call, update their status, and record the call.
@@ -70,6 +76,7 @@ def assign_agent_and_schedule(
         metadata (Dict): Additional metadata extracted from the conversation.
         transcription (str): The text transcription of the conversation.
         sentiment (str): The sentiment detected in the conversation (Positive, Neutral, Negative).
+        claim_id (int): The ID of the claim.
 
     Returns:
         Dict: Details of the assigned agent, or None if no agent is available.
@@ -93,10 +100,27 @@ def assign_agent_and_schedule(
             sentiment=sentiment,
             urgency=urgency,
             intent=intent,
-            agent_id=matched_agent["AgentID"],
+            claim_id=claim_id,
+            assigned_agent_id=matched_agent["AgentID"],
         )
 
-        # Step 4: Return the matched agent
+        # Step 4: Add the call to the priority queue based on urgency
+        urgency_priority = {"High": 1, "Medium": 2, "Low": 3}
+        priority = urgency_priority.get(urgency, 3)
+        heapq.heappush(call_queue, (priority, datetime.now(), matched_agent["AgentID"], client_id))
+
+        # Step 5: Update the agent's schedule based on the priority queue
+        while call_queue:
+            _, start_time, agent_id, client_id = heapq.heappop(call_queue)
+            end_time = start_time + timedelta(minutes=30)  # Assuming each call lasts 30 minutes
+            add_schedule(
+                agent_id=agent_id,
+                client_id=client_id,
+                start_time=start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                end_time=end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            )
+
+        # Step 6: Return the matched agent
         return matched_agent
 
     return None
